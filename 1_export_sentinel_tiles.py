@@ -4,14 +4,14 @@ ee.Initialize()
 # Line 97: change cloud filter parameters
 
 # Set your stuff 
-SITE='Costa Rica' #Country
-STATE=-999 #State
-GRIDSIZE=25000 #25km
-IDX=0 #-999 to skip this param
-STEP=1
+SITE='Brazil' #Country
+STATE='Roraima' #State, -999
+GRIDSIZE=40000 #km*1000
+IDX=140 #-999 to skip this param
+STEP=10
 BIWEEKLY=1 
 MONTHLY=0
-OUTPATH='/mnt/locutus/remotesensing/6ru/TEST' #Don't include final slash
+OUTPATH='/mnt/locutus/remotesensing/6ru/sentinel_2/roraima' #Don't include final slash
 SDATE=2017
 EDATE=2020
 SCALE=20
@@ -26,8 +26,8 @@ if STATE != -999:
 
 else:
     br = (ee.FeatureCollection("FAO/GAUL/2015/level1")
-            .filterMetadata('ADM0_NAME', 'equals', SITE)
-	print("Feature collection of {} loaded.".format(SITE))
+            .filterMetadata('ADM0_NAME', 'equals', SITE))
+    print("Feature collection of {} loaded.".format(SITE))
 
 # Create grid
 # https://developers.google.com/earth-engine/tutorials/community/drawing-tools
@@ -299,13 +299,18 @@ for num in range(IDX,nex):
     tiles.append(index)
 print("Files to be created:\n" + str(tiles))
       
+# Predict number of images in a timestep
+if choice == 'biweekly':
+	num_imgs = 25 * (EDATE - SDATE + 1)
+
+if choice == 'monthly':
+	num_imgs = 12 * (EDATE - SDATE + 1)
+
 # Export images from a collection
-import logging
 tic1 = time.time()
-count = 0
 for a_col, a_tile, poly in zip(all_cols, tiles, polys):
     ilist = a_col.toList(a_col.size())
-    for i in range(0,len(ilist)):
+    for i in range(0, num_imgs):
         filename = "{}/{}_{}/{}/{}.tif".format(
                 OUTPATH, 
                 sitename,
@@ -336,12 +341,9 @@ for a_col, a_tile, poly in zip(all_cols, tiles, polys):
             print("Time elapsed: {:0>2}:{:0>2}:{:05.2f}"
                   .format(int(hours),int(mins),secs))
             
-        except Exception as e:
-		    count += 1
-            logging.exception("Exception occured at tile {}.".format(i))
+        except Exception:
             print("Error raised. Skipping image {}.".format(i))
             pass
-print("{} total .tifs were not downloaded.".format(str(count)))
 
 toc1 = time.time()
 hrs1, rem1 = divmod(toc1-tic1, 3600)
